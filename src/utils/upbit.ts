@@ -44,6 +44,7 @@ type GetOrdersBody = {
   state?: string
   states?: string[]
   limit?: number
+  page?: number
 }
 
 export async function getOrders(body: GetOrdersBody) {

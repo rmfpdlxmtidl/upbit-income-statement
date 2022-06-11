@@ -14,8 +14,8 @@ const Home: NextPage<Props> = ({ ordersGroupByDate }) => {
     let satoshiSummation = 0
     let fee = 0
     for (const order of ordersGroupByDate[date]) {
-      wonSummation += order.won
-      satoshiSummation += +order.satoshi
+      wonSummation += +order.won
+      satoshiSummation += order.satoshi
       fee += +order.fee
     }
     statistics.push({
@@ -44,39 +44,63 @@ const Home: NextPage<Props> = ({ ordersGroupByDate }) => {
           {statistics.map(({ date, wonSummation, satoshiSummation, fee }, i) => (
             <tr key={i}>
               <td>{date}</td>
-              <td>{(wonSummation - fee + satoshiSummation * 0.38).toFixed(2)}</td>
+              <td>{(wonSummation - fee + satoshiSummation).toFixed(2)}</td>
               <td>{wonSummation.toFixed(2)}</td>
-              <td>{satoshiSummation}</td>
+              <td>{satoshiSummation.toFixed(2)}</td>
               <td>{fee.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <pre>{JSON.stringify(ordersGroupByDate, null, 2)}</pre>
     </div>
   )
 }
 
 export const getStaticProps: GetStaticProps = async (context) => {
-  const orders = await getOrders({
+  const orders1 = await getOrders({
     market: 'KRW-BTC',
     state: 'done',
   })
+  const orders2 = await getOrders({
+    market: 'KRW-BTC',
+    state: 'done',
+    page: 2,
+  })
+  const orders3 = await getOrders({
+    market: 'KRW-BTC',
+    state: 'done',
+    page: 3,
+  })
+  const orders4 = await getOrders({
+    market: 'KRW-BTC',
+    state: 'done',
+    page: 4,
+  })
+  const orders5 = await getOrders({
+    market: 'KRW-BTC',
+    state: 'done',
+    page: 5,
+  })
+
+  const orders = [...orders1, ...orders2, ...orders3, ...orders4, ...orders5]
 
   const ordersGroupByDate: any = {}
 
   for (const order of orders) {
+    const bitcoinVolume = order.executed_volume.split('.')
+    const satoshi = +bitcoinVolume[0] * 100_000_000 + +bitcoinVolume[1].padEnd(8, '0')
+    const _ = `${satoshi * +order.price.split('.')[0]}` // bitcoin 시세 100원 미만시 오류 발생
+    const wonInt = _.slice(0, _.length - 8)
+    const wonDecimal = _.slice(_.length - 8, _.length)
     const wonSign = order.side === 'ask' ? '' : '-'
-    const volume = order.executed_volume.split('.')
-    const satoshi = +volume[0] * 100_000_000 + +volume[1].padEnd(8, '0')
-    const rawWon = `${satoshi * +order.price.split('.')[0]}`
-    const wonInt = rawWon.slice(0, rawWon.length - 8)
-    const wonDecimal = rawWon.slice(rawWon.length - 8, rawWon.length)
-    const stringWon = `${wonSign}${wonInt}.${wonDecimal}`
 
     const key = new Date(order.created_at).toLocaleDateString()
     if (!ordersGroupByDate[key]) ordersGroupByDate[key] = []
+
     ordersGroupByDate[key].push({
-      won: +stringWon,
+      won: `${wonSign}${wonInt}.${wonDecimal}`,
       satoshi: order.side === 'ask' ? -satoshi : satoshi,
       fee: order.paid_fee,
     })
