@@ -3,10 +3,29 @@ import type { GetStaticProps, NextPage } from 'next'
 import { getOrders } from '../utils/upbit'
 
 type Props = {
-  statistics: any[]
+  ordersGroupByDate: any
 }
 
-const Home: NextPage<Props> = ({ statistics }) => {
+const Home: NextPage<Props> = ({ ordersGroupByDate }) => {
+  const statistics = []
+
+  for (const date of Object.keys(ordersGroupByDate)) {
+    let wonSummation = 0
+    let satoshiSummation = 0
+    let fee = 0
+    for (const order of ordersGroupByDate[date]) {
+      wonSummation += order.won
+      satoshiSummation += +order.satoshi
+      fee += +order.fee
+    }
+    statistics.push({
+      date,
+      wonSummation,
+      satoshiSummation,
+      fee,
+    })
+  }
+
   return (
     <div>
       <h6>손익(총) = 손익(원) + 손익(사토시) * 사토시시세 - 수수료</h6>
@@ -63,28 +82,9 @@ export const getStaticProps: GetStaticProps = async (context) => {
     })
   }
 
-  const statistics = []
-
-  for (const date of Object.keys(ordersGroupByDate)) {
-    let wonSummation = 0
-    let satoshiSummation = 0
-    let fee = 0
-    for (const order of ordersGroupByDate[date]) {
-      wonSummation += order.won
-      satoshiSummation += +order.satoshi
-      fee += +order.fee
-    }
-    statistics.push({
-      date,
-      wonSummation,
-      satoshiSummation,
-      fee,
-    })
-  }
-
   return {
     props: {
-      statistics,
+      ordersGroupByDate,
     },
     revalidate: 600,
   }
